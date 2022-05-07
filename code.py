@@ -18,7 +18,11 @@ from adafruit_bitmap_font import bitmap_font
 from adafruit_matrixportal.network import Network
 from adafruit_matrixportal.matrix import Matrix
 
-BLINK = True
+
+import adafruit_requests as requests
+import adafruit_esp32spi.adafruit_esp32spi_socket as socket
+
+BLINK = False
 DEBUG = False
 CLOCK_ON = True
 
@@ -37,6 +41,10 @@ display = matrix.display
 network = Network(status_neopixel=board.NEOPIXEL, debug=False)
 
 
+
+
+
+# --- Button setup ---
 pin_down = DigitalInOut(board.BUTTON_DOWN)
 pin_down.switch_to_input(pull=Pull.UP)
 button_down = Debouncer(pin_down)
@@ -44,9 +52,7 @@ pin_up = DigitalInOut(board.BUTTON_UP)
 pin_up.switch_to_input(pull=Pull.UP)
 button_up = Debouncer(pin_up)
 
-# esp32_cs = DigitalInOut(board.ESP_CS)
-# esp32_ready = DigitalInOut(board.ESP_BUSY)
-# esp32_reset = DigitalInOut(board.ESP_RESET)
+
 
 
 
@@ -57,7 +63,9 @@ color = displayio.Palette(4)  # Create a color palette
 color[0] = 0x000000  # black background
 color[1] = 0x6A0DAD  # BLUE
 color[2] = 0x6A0DAD  # BLUE
-color[3] = 0x6A0DAD  # BLUE
+color[3] = 0x6A0DAD # BLUE
+           
+
 
 # Create a TileGrid using the Bitmap and Palette
 tile_grid = displayio.TileGrid(bitmap, pixel_shader=color)
@@ -118,19 +126,32 @@ update_time(show_colon=True)  # Display whatever time is on the board
 group.append(clock_label)  # add the clock label to the group
 
 while True:
-    print('test1')
-    button_up.update() 
-    if button_up.fell:
-        print('test')
-        CLOCK_ON = not CLOCK_ON
-    button_down.update()
-    if button_down.fell:
-        CLOCK_ON = not CLOCK_ON
+
+    # print(network.get_local_time())
+    clock_feed_response = network.fetch_data(
+        url = 'https://io.adafruit.com/api/v2/hcodu/feeds/welcome-feed/data/retain', 
+        headers = {'Access-Control-Request-Method' : 'GET'},
+        timeout = 5
+    )
+    time.sleep(3)
+
+    color_feed_response = network.fetch_data(
+        url = 'https://io.adafruit.com/api/v2/hcodu/feeds/color-feed/data/retain', 
+        headers = {'Access-Control-Request-Method' : 'GET'},
+        timeout = 5
+    )
+
+    color_feed_response = "0x" + color_feed_response[1:7]
+    
+    hex_int = int(color_feed_response, 16)
+    color[1] = hex_int
+
+    if clock_feed_response[0:4] == 'True':
+        CLOCK_ON = True
+    if clock_feed_response[0:5] == "False":
+        CLOCK_ON = False
 
     
-
-
-
     if last_check is None or time.monotonic() > last_check + 3600:
         try:
             update_time(

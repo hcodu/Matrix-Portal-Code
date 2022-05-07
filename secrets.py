@@ -6,6 +6,6 @@ secrets = {
     'password' : 'psolutions1234',
     'timezone' : "America/New_York", # http://worldtimeapi.org/timezones
     'aio_username' : 'hcodu',
-    'aio_key' : 'aio_mAzP17bLgXHDdHX18oTTapBZ3VMI',
+    'aio_key' : 'aio_IMKD28WHRnuBZcs7mVH1OefOa3QF',
 
 }
