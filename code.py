@@ -14,7 +14,6 @@ import os
 
 import rtc
 
-import gc
 
 # import adafruit_oauth2 as OAUTH2
 
@@ -52,16 +51,16 @@ except ImportError:
 print("    Adafruit IO Controlled Clock")
 print("Time will be set for {}".format(secrets["timezone"]))
 
+# --- Wireless esp32 setup ---
 esp32_cs = DigitalInOut(board.ESP_CS)
 esp32_ready = DigitalInOut(board.ESP_BUSY)
 esp32_reset = DigitalInOut(board.ESP_RESET)
-
 spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
 esp = adafruit_esp32spi.ESP_SPIcontrol(spi, esp32_cs, esp32_ready, esp32_reset)
+
+# --- Requests and wifi setup ---
 requests.set_socket(socket, esp)
-
 wifi = adafruit_esp32spi_wifimanager.ESPSPI_WiFiManager(esp, secrets)
-
 
 
 # --- Display setup ---
@@ -252,17 +251,26 @@ while True:
     try:
         io.loop()
     except (ValueError, RuntimeError, Exception) as e:
+
         print("Failed to loop MQTT, reconnecting \n", e)
+        io.publish("error-feed", e)
 
         wifi.reset()
         time.sleep(10)
-        io.reconnect()
+
+        try:
+            io.reconnect()
+        except(ValueError, RuntimeError, Exception) as e:
+            print("Failed to reconnect MQTT, reconnecting \n", e)
+            io.publish("error-feed", e)
+            
+            continue
 
         continue
 
 
     if last_check is None or time.monotonic() > last_check + 3600:
-        
+        io.publish("error-feed", "time refreshed")
         try: 
             response = requests.get("https://www.timeapi.io/api/TimeZone/zone?timeZone=America/New_York").json()["currentLocalTime"]
                     
