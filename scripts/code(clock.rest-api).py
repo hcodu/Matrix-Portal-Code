@@ -18,10 +18,11 @@ from adafruit_bitmap_font import bitmap_font
 from adafruit_matrixportal.network import Network
 from adafruit_matrixportal.matrix import Matrix
 
+
 import adafruit_requests as requests
 import adafruit_esp32spi.adafruit_esp32spi_socket as socket
 
-BLINK = True
+BLINK = False
 DEBUG = False
 CLOCK_ON = True
 
@@ -37,7 +38,7 @@ print("Time will be set for {}".format(secrets["timezone"]))
 # --- Display setup ---
 matrix = Matrix()
 display = matrix.display
-network = Network(debug=False)
+network = Network(status_neopixel=board.NEOPIXEL, debug=False)
 
 
 
@@ -62,7 +63,7 @@ color = displayio.Palette(4)  # Create a color palette
 color[0] = 0x000000  # black background
 color[1] = 0x6A0DAD  # BLUE
 color[2] = 0x6A0DAD  # BLUE
-color[3] = 0x6A0DAD  # BLUE
+color[3] = 0x6A0DAD # BLUE
            
 
 
@@ -126,24 +127,27 @@ group.append(clock_label)  # add the clock label to the group
 
 while True:
 
+    # print(network.get_local_time())
     clock_feed_response = network.fetch_data(
         url = 'https://io.adafruit.com/api/v2/hcodu/feeds/welcome-feed/data/retain', 
-        headers = {'Access-Control-Request-Method' : 'GET'}
+        headers = {'Access-Control-Request-Method' : 'GET'},
+        timeout = 5
+    )
+    time.sleep(3)
+
+    color_feed_response = network.fetch_data(
+        url = 'https://io.adafruit.com/api/v2/hcodu/feeds/color-feed/data/retain', 
+        headers = {'Access-Control-Request-Method' : 'GET'},
+        timeout = 5
     )
 
-    # color_feed_response = network.fetch_data(
-    #     url = 'https://io.adafruit.com/api/v2/hcodu/feeds/color-feed/data/retain', 
-    #     headers = {'Access-Control-Request-Method' : 'GET'}
-    # )
-    # print(color_feed_response[1:7])
-
-    # color_feed_response = "0x" + color_feed_response[1:7].upper()
-    # print(color_feed_response)
-
-    # integer = int(color_feed_response, 16)
-    # hv = hex(integer)
+    color_feed_response = "0x" + color_feed_response[1:7]
+    # print("Original String: " + color_feed_response)
     
-    # color[1] = hv
+    hex_int = int(color_feed_response, 16)
+    color[1] = hex_int
+
+    
     
 
     if clock_feed_response[0:4] == 'True':
